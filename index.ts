@@ -38,4 +38,4 @@ const scrapeKaraokeData = (): Promise<KaraokeSong[]> => {
   });
 };
 
-export { scrapeKaraokeData };
+export default scrapeKaraokeData;
