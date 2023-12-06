@@ -2,40 +2,43 @@ import axios from "axios";
 import { load } from "cheerio";
 import { KaraokeSong } from "./types";
 
-const url = "https://www.karaokenerds.com/GlobalKaraokeCommunity/Browse";
+const count = 10;
+const timeStamp = Date.now();
+const direction: 'asc' | 'desc' = 'desc';
+const url = `https://www.karaokenerds.com/Community/BrowseJson/?length=${count}&order[0][column]=3&order[0][dir]=${direction}&_=${timeStamp}`;
 
-enum DataMap {
-  "artist" = 0,
-  "title" = 1,
-  "date" = 2,
-  "uploader" = 3,
-  "youtubeId" = 4,
-}
+const getKaraokeData = async (): Promise<KaraokeSong[]> => {
+  const songData = await axios.get(url).then(({ data }) => {
+    const songs = data?.data
+    const songList: KaraokeSong[] = []
+    console.log(`${data?.data?.length} songs in raw data`)
 
-const scrapeKaraokeData = (): Promise<KaraokeSong[]> => {
-  return axios.get(url).then(({ data }) => {
-    const $ = load(data);
-    const rows = $(".table tr");
-    const songList: KaraokeSong[] = [];
-    rows.map((_, row) => {
-      const tableCells = $(row).find("td");
-      const song = {
-        artist: $(tableCells[DataMap["artist"]])?.text()?.trim(),
-        title: $(tableCells[DataMap["title"]])?.text()?.trim(),
-        date: $(tableCells[DataMap["date"]])?.text()?.trim(),
-        uploader: $(tableCells[DataMap["uploader"]])?.text()?.trim(),
-        youtubeId: $(tableCells[DataMap["youtubeId"]])
-          ?.find("a")
-          ?.attr("href")
-          ?.split("=")[1]
-          ?.trim(),
-      };
-      if (song.artist && song.title && song.youtubeId) {
-        songList.push(song);
+    songs.forEach(item => {
+      const artist = load(item[1])('a').text();
+      const title = load(item[2])('a').text();
+      const date = item[3];
+      const uploader = load(item[4])('a').text();
+      const youtubeLink = item[5].split('|')[0];
+      const videoIdMatch = youtubeLink.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^"&?\/\s]{11})/);
+      const youtubeId = videoIdMatch ? videoIdMatch[1] : null;
+  
+      if (youtubeId && artist && title) {
+        songList.push({
+          artist,
+          title,
+          date,
+          uploader,
+          youtubeId
+        })
       }
     });
+    console.log(`${songList.length} songs after parsing`)
+    console.log(songList)
     return songList;
   });
+  return songData;
 };
 
-export default scrapeKaraokeData;
+getKaraokeData();
+
+export default getKaraokeData;
