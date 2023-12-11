@@ -15,6 +15,7 @@
   "author": "Tom Britton",
   "license": "ISC",
   "dependencies": {
+    "@libsql/client": "^0.4.0-pre.5",
     "axios": "^1.2.2",
     "cheerio": "^1.0.0-rc.12"
   },
